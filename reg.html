@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C:\ReformRP\Portal.exe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Подключение твоего локального файла шрифта */
+        @font-face {
+            font-family: 'VCR OSD Mono';
+            src: url('vcrosdmonorus_vhsicons.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            /* Используем твой шрифт, если его нет — включается идеальный ретро-аналог VT323 */
+            font-family: 'VCR OSD Mono', 'VT323', Consolas, monospace;
+            color: #dcdcdc;
+        }
+
+        /* Имитация шапки окна Windows CMD / Терминала */
+        .cmd-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 32px;
+            background: #111111;
+            border-bottom: 1px solid #333333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            font-size: 14px;
+            z-index: 5;
+            color: #888888;
+            letter-spacing: 1px;
+        }
+
+        .cmd-controls span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #333;
+            margin-left: 6px;
+            border: 1px solid #555;
+        }
+
+        /* Канвас для ASCII-неба */
+        #ascii-sky {
+            position: fixed;
+            top: 32px;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 32px);
+            z-index: 1;
+        }
+
+        /* Контейнер порталов */
+        .container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5rem;
+            width: 100%;
+            height: 100%;
+            padding: 4rem 2rem 2rem 2rem;
+        }
+
+        /* Консольные рамки-карточки */
+        .console-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            background: rgba(10, 10, 10, 0.75);
+            border: 2px solid #444444;
+            /* Острые углы в стиле старых терминалов */
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+            cursor: pointer;
+            text-decoration: none;
+            color: #ffffff;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        /* Текстовые уголки (декор рамки) */
+        .console-card::before {
+            content: "[ PORTAL ]";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #050505;
+            padding: 0 8px;
+            font-size: 14px;
+            color: #888;
+            transition: color 0.25s ease;
+        }
+
+        /* Наведение (Белое свечение) */
+        .console-card:hover {
+            transform: translateY(-6px);
+            border-color: #ffffff;
+            background: rgba(20, 20, 20, 0.95);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.6),
+                        inset 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .console-card:hover::before {
+            color: #ffffff;
+            content: "[ SELECTING... ]";
+        }
+
+        /* Нажатие (Желтое свечение) */
+        .console-card.clicked {
+            transform: scale(0.97);
+            border-color: #ffd700 !important;
+            background: rgba(30, 25, 5, 0.95) !important;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 1),
+                        inset 0 0 20px rgba(255, 215, 0, 0.5) !important;
+        }
+
+        .console-card.clicked::before {
+            color: #ffd700 !important;
+            content: "[ EXECUTE WARP... ]" !important;
+        }
+
+        .console-card.clicked .title,
+        .console-card.clicked .subtitle {
+            color: #ffd700;
+            text-shadow: 0 0 12px rgba(255, 215, 0, 0.9);
+        }
+
+        .console-card.clicked .icon-wrapper {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        /* Иконки в ретро-рамке */
+        .icon-wrapper {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 1.5rem;
+            border: 2px solid #555555;
+            padding: 4px;
+            background: #000;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .icon-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* Легкий эффект контраста для VHS-стиля */
+            filter: contrast(1.1);
+        }
+
+        .console-card:hover .icon-wrapper {
+            border-color: #ffffff;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Типографика */
+        .title {
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #aaaaaa;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        /* Белая вспышка */
+        #flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.7s cubic-bezier(0.7, 0, 0.3, 1);
+        }
+
+        /* Адаптация для мобильных телефонов */
+        @media (max-width: 900px) {
+            body, html {
+                overflow-y: auto;
+            }
+
+            .container {
+                flex-direction: column;
+                gap: 2.5rem;
+                padding: 5rem 1.5rem 3rem 1.5rem;
+                height: auto;
+            }
+
+            .console-card {
+                max-width: 100%;
+                padding: 1.5rem;
+            }
+
+            .icon-wrapper {
+                width: 120px;
+                height: 120px;
+            }
+
+            .title {
+                font-size: 1.8rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cmd-header">
+        <span>C:\naviserver-src\java -jar ReformRP_Portal.jar</span>
+        <div class="cmd-controls">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <canvas id="ascii-sky"></canvas>
+    <div id="flash-overlay"></div>
+
+    <div class="container">
+        <div class="console-card" data-url="https://web.telegram.org/k/#@sleshhhs">
+            <div class="icon-wrapper">
+                <img src="https://cdn.phototourl.com/free/2026-07-06-a9dfdc61-f5e6-4ab3-9e63-5b7e7f0f6406.jpg" alt="Main Historia">
+            </div>
+            <div class="title">Reform RP</div>
+            <div class="subtitle">&gt; Main Historia</div>
+        </div>
+
+        <div class="console-card" data-url="https://web.telegram.org/k/#@mbrtokens">
+            <div class="icon-wrapper">
+                <img src="https://cdn.phototourl.com/free/2026-07-06-cebba542-8192-4cc7-8270-2f788b59f394.png" alt="Virtual Historia">
+            </div>
+            <div class="title">Reform RP : New Era</div>
+            <div class="subtitle">&gt; Virtual Historia</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('ascii-sky');
+        const ctx = canvas.getContext('2d');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const cards = document.querySelectorAll('.console-card');
+
+        let width, height;
+        let asciiStars = [];
+        let isWarping = false;
+        let warpCenterX, warpCenterY;
+
+        // Набор ASCII символов для свечения на небе
+        const chars = ['*', '+', '•', '°', '✦', '·', 'x', '0', '1'];
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight - 32; // Учитываем шапку
+            initStars();
+        }
+
+        class AsciiStar {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.char = chars[Math.floor(Math.random() * chars.length)];
+                this.fontSize = Math.floor(Math.random() * 10) + 12; // От 12px до 22px
+                this.alpha = Math.random() * 0.7 + 0.3;
+                this.twinkleSpeed = (Math.random() * 0.02) + 0.005;
+            }
+
+            update() {
+                if (isWarping) {
+                    // Эффект засасывания в точку нажатия
+                    const dx = warpCenterX - this.x;
+                    const dy = warpCenterY - this.y;
+                    this.vx = dx * 0.06;
+                    this.vy = dy * 0.06;
+                    this.x += this.vx;
+                    this.y += this.vy;
+                } else {
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Плавное изменение яркости (мерцание)
+                    this.alpha += this.twinkleSpeed;
+                    if (this.alpha > 1 || this.alpha < 0.2) {
+                        this.twinkleSpeed = -this.twinkleSpeed;
+                    }
+
+                    // Бесконечный экран
+                    if (this.x < 0) this.x = width;
+                    if (this.x > width) this.x = 0;
+                    if (this.y < 0) this.y = height;
+                    if (this.y > height) this.y = 0;
+                }
+            }
+
+            draw() {
+                ctx.font = `${this.fontSize}px 'VCR OSD Mono', 'VT323', monospace`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, Math.max(0, this.alpha))})`;
+                // Эффект неонового свечения для текста
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                ctx.fillText(this.char, this.x, this.y);
+                ctx.shadowBlur = 0; // Сбрасываем тень для других элементов
+            }
+        }
+
+        function initStars() {
+            asciiStars = [];
+            const starCount = Math.floor((width * height) / 6000);
+            for (let i = 0; i < starCount; i++) {
+                asciiStars.push(new AsciiStar());
+            }
+        }
+
+        // Рисуем пунктирные ретро-линии созвездий между близкими символами
+        function drawConstellations() {
+            const maxDistance = 120;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 4]); // Пунктир в стиле ретро-векторов
+
+            for (let i = 0; i < asciiStars.length; i++) {
+                for (let j = i + 1; j < asciiStars.length; j++) {
+                    const dx = asciiStars[i].x - asciiStars[j].x;
+                    const dy = asciiStars[i].y - asciiStars[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDistance) {
+                        const opacity = (1 - dist / maxDistance) * 0.3;
+                        ctx.beginPath();
+                        ctx.moveTo(asciiStars[i].x, asciiStars[i].y - 5);
+                        ctx.lineTo(asciiStars[j].x, asciiStars[j].y - 5);
+                        ctx.strokeStyle = `rgba(180, 220, 255, ${opacity})`;
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.setLineDash([]); // Возвращаем обычную линию
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            if (!isWarping) {
+                drawConstellations();
+            }
+
+            asciiStars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                if (isWarping) return;
+                
+                const targetUrl = card.getAttribute('data-url');
+                card.classList.add('clicked');
+
+                const rect = card.getBoundingClientRect();
+                warpCenterX = rect.left + rect.width / 2;
+                warpCenterY = (rect.top - 32) + rect.height / 2; // Корректировка под шапку
+
+                isWarping = true;
+
+                setTimeout(() => {
+                    flashOverlay.style.opacity = '1';
+                }, 500);
+
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 1400);
+            });
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        resizeCanvas();
+        animate();
+    </script>
+</body>
+</html>
